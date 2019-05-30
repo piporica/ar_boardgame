@@ -1,8 +1,8 @@
 ﻿  useimage.cpp
 D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(104): warning C4244: '인수': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
   코드를 생성하고 있습니다.
-  67 of 376 functions (17.8%) were compiled, the rest were copied from previous compilation.
+  1 of 484 functions ( 0.2%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    22 functions had inline decision re-evaluated but remain unchanged
+    1 functions had inline decision re-evaluated but remain unchanged
   코드를 생성했습니다.
   OpenCV_check.vcxproj -> D:\mine\opencv\repos\OpenCV_check\x64\Release\OpenCV_check.exe

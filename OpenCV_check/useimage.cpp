@@ -109,13 +109,6 @@ int getFingerNum1(const Mat & mask, Point center, double radius, double scale)
 
 	if (contours.size() == 0) return -3; //손 없으면 찾지x
 
-	for (int i = 0; i < contours[0].size(); i++)
-	{
-		cout << i << ": ";
-		cout << contours[0][i].x << ", ";
-		cout << contours[0][i].y << endl;
-	}
-
 	//외곽선을 따라 돌며 mask의 값이 0->1인 지점 확인
 	int fingerCount = 0;
 
@@ -144,10 +137,18 @@ void DrawConvex(const Mat& mask)
 	//마스크 컨투어링
 
 	vector<vector<Point> >hull(contours.size());
+	vector<vector<int> > hullsI(contours.size());
+	vector<Vec4i> defects(contours.size());
+
 	for (size_t i = 0; i < contours.size(); i++)
 	{
+		cout << i;
 		convexHull(contours[i], hull[i]);
+		convexHull(contours[i], hullsI[i]);
 	}
+
+	convexityDefects(contours[0], hullsI[0], defects);
+
 
 	Mat drawing = Mat::zeros(mask.size(), CV_8UC3);
 	for (size_t i = 0; i < contours.size(); i++) // 개중에 가장 큰거만 해야하지 않을까..........? 영상이면..........?
@@ -157,6 +158,22 @@ void DrawConvex(const Mat& mask)
 		drawContours(drawing, hull, (int)i, color);
 	}
 
+	for (size_t i = 0; i < defects.size(); i++)
+	{
+		Vec4i v = defects[i];
+		int depth = v[3];
+		cout << i << " : " << depth << endl;
+		if (depth >= 2500) // 조정할 것
+		{
+			int startidx = v[0]; Point ptStart(contours[0][startidx]);
+			int endidx = v[1]; Point ptEnd(contours[0][endidx]);
+			int faridx = v[2]; Point ptFar(contours[0][faridx]);
+
+			circle(drawing, ptEnd, 4, Scalar(255, 255, 255), 2);
+			circle(drawing, ptStart, 4, Scalar(0, 255, 255), 2);
+			circle(drawing, ptFar, 4, Scalar(255, 255, 0), 2);
+		}
+	}
 	imshow("Hull demo", drawing);
 
 }
