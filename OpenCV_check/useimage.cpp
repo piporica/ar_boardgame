@@ -15,6 +15,7 @@ using namespace cv;
 using namespace std;
 Point getHandCenter1(const Mat& mask, double& radius);
 int getFingerNum1(const Mat& mask, Point center, double radius, double scale);
+void DrawConvex(const Mat& mask);
 
 int main(int, char**)
 {
@@ -62,9 +63,11 @@ int main(int, char**)
 	circle(frame, centerPoint, 2, Scalar(0, 255, 0), -1);
 	circle(frame, centerPoint, (int)(radius + 0.5), Scalar(255, 0, 0), 2);
 
-	//손가락 세기
+	//손가락 세기1
 	cout << getFingerNum1(eroded, centerPoint, radius, 1.8);
 	
+	DrawConvex(eroded);
+
 	//이미지 띄우기
 	imshow("frame", frame);
 	imshow("eroded", eroded);
@@ -128,8 +131,32 @@ int getFingerNum1(const Mat & mask, Point center, double radius, double scale)
 	return fingerCount - 1;
 }
 
-//손목과 구별하는 함수 만들기
-bool checkHand()
+
+
+//컨벡스를 이용한 손모양 검출
+void DrawConvex(const Mat& mask)
 {
+	//컨벡스 쓰기
+	RNG rng(12345);
+
+	vector <vector<Point>> contours;
+	findContours(mask, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
+	//마스크 컨투어링
+
+	vector<vector<Point> >hull(contours.size());
+	for (size_t i = 0; i < contours.size(); i++)
+	{
+		convexHull(contours[i], hull[i]);
+	}
+
+	Mat drawing = Mat::zeros(mask.size(), CV_8UC3);
+	for (size_t i = 0; i < contours.size(); i++) // 개중에 가장 큰거만 해야하지 않을까..........? 영상이면..........?
+	{
+		Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+		drawContours(drawing, contours, (int)i, color);
+		drawContours(drawing, hull, (int)i, color);
+	}
+
+	imshow("Hull demo", drawing);
 
 }
