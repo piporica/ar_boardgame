@@ -4,51 +4,16 @@
   @author PkLab.net
   @date Aug 24, 2016
 */
-#include <opencv2/opencv.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/videoio.hpp>
-#include <opencv2/highgui.hpp>
-#include <iostream>
-#include <stdio.h>
+#include "header.h"
 
-using namespace cv;
-using namespace std;
-Point getHandCenter1(const Mat& mask, double& radius);
-int getFingerNum1(const Mat& mask, Point center, double radius, double scale);
-void DrawConvex(const Mat& mask);
 
 int main(int, char**)
 {
-
-	Mat YCrCbframe;
-	vector<Mat> planes;
-	Mat mask;
-
-	Mat dst;
-	Mat dstshow;
-
-	int minCr = 133; //128 
-	int maxCr = 180;
-	int minCb = 78; //73
-	int maxCb = 139;
-
-	//손바닥감지
-	//일단원으로 검출부터 함;
-
-	Point centerPoint; //손바닥 중심 위치 
-	double radius;
-
-
-	Mat frame = imread("./hand-imgs/hand.jpg");
-
 	cvtColor(frame, YCrCbframe, COLOR_BGR2YCrCb);
 	split(YCrCbframe, planes); // 쪼개서 하고 싶으면 이렇게 
 
 	mask = (minCr < planes[1]) & (planes[1] < maxCr) & (minCb < planes[2]) & (planes[2] < maxCb);
 
-
-	Mat eroded;
-	Mat closed;
 
 	//모폴로지 연산 클로즈 > 이로드 
 	morphologyEx(mask, closed, MORPH_CLOSE, Mat(5, 5, CV_8U, Scalar(1)));
@@ -64,9 +29,12 @@ int main(int, char**)
 	circle(frame, centerPoint, 2, Scalar(0, 255, 0), -1);
 	circle(frame, centerPoint, (int)(radius + 0.5), Scalar(255, 0, 0), 2);
 
-	//손가락 세기1
+	//손가락 세기1 - 1차실패...
 	//cout <<  getFingerNum1(eroded, centerPoint, radius, 1.8);
 	
+	//컨벡스 그리기
+
+	cvFillHoles(eroded);
 	DrawConvex(eroded);
 
 	//이미지 띄우기
@@ -75,13 +43,14 @@ int main(int, char**)
 	imshow("frame", frame);
 	imshow("eroded", eroded);
 
+	//getRealcenterPoint();
 	//imshow("clmg", clmg);
 
 	waitKey(0);
 		
 }
 
-//손바닥 중심 구하기1
+//손바닥 중심 구하기1 - 손목과 구분 x
 Point getHandCenter1(const Mat & mask, double& radius) {
 
 	//거리 변환 행렬을 저장할 변수
@@ -98,6 +67,7 @@ Point getHandCenter1(const Mat & mask, double& radius) {
 
 
 //손가락 갯수 세기 - 원 그려서 하기
+/*
 int getFingerNum1(const Mat & mask, Point center, double radius, double scale)
 //scale : 검출할 원의 반지름에 쓰일 배수
 {
@@ -124,22 +94,23 @@ int getFingerNum1(const Mat & mask, Point center, double radius, double scale)
 
 	return fingerCount - 1;
 }
+*/
 
 
-
-//컨벡스를 이용한 손모양 검출
+//컨벡스를 이용한 손모양 검출 
 void DrawConvex(const Mat& mask)
 {
-	//컨벡스 쓰기
-	RNG rng(12345);
-
-	vector <vector<Point>> Contours;
 	findContours(mask, Contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
-	//마스크 컨투어링
-
-	vector<vector<Point> >hull(Contours.size());
+	vector<vector<Point>>hull(Contours.size());
 	vector<vector<int> > hullsI(Contours.size()); // Indices to contour points
 	vector<vector<Vec4i>> defects(Contours.size());
+
+	//전역변수화
+	_hull = hull;
+	_hullsI = hullsI;
+	_defects = defects;
+
+	//컨벡스 쓰기
 	for (int i = 0; i < Contours.size(); i++)
 	{
 		convexHull(Contours[i], hull[i], false);
@@ -153,6 +124,10 @@ void DrawConvex(const Mat& mask)
 	Mat drawing = Mat::zeros(mask.size(), CV_8UC3);
 
 	/// Draw convexityDefects
+
+	int count = 0;
+	Point temparr[10]; //어차피 손가락사이점임(잘 된다면ㅎ;)
+
 	for (int i = 0; i < Contours.size(); ++i)
 	{
 		for (const Vec4i& v : defects[i])
@@ -166,7 +141,6 @@ void DrawConvex(const Mat& mask)
 			cout << depth << endl;
 			if (depth > 2500) //  filter defects by depth, e.g more than 10
 			{
-
 				int startidx = v[0]; Point ptStart(Contours[i][startidx]);
 				int endidx = v[1]; Point ptEnd(Contours[i][endidx]);
 				int faridx = v[2]; Point ptFar(Contours[i][faridx]);
@@ -178,15 +152,72 @@ void DrawConvex(const Mat& mask)
 				circle(drawing, ptFar, 4, Scalar(0, 255, 255), 2);
 				circle(drawing, ptStart, 4, Scalar(0, 0, 255), 2);
 				circle(drawing, ptEnd, 4, Scalar(0, 0, 255), 2);
-
+				temparr[count] = ptFar;
+				count++;
 			}
 		}
 	}
-	imshow("Hull demo", drawing);
+	vector<Point> defectPoints(count);
+	for (int k = 0; k < count; k++)
+	{
+		defectPoints[k] = temparr[k];
+	}
+	_defectPoints = defectPoints;
 
+	imshow("Hull demo", drawing);
 }
 
-/*
- 컨벡스 결점 내부의 값 중에서
+void getRealcenterPoint()
+{
+	// 손바닥 다각형 그리기
+	Mat check(mask.size(), CV_8U, Scalar(0));
+	for (int i = 0; i < _defectPoints.size(); i++)
+	{
+		circle(check, _defectPoints[i], 4, Scalar(255), 2);
+	}
 
-*/
+	//imshow("check", check);
+}
+
+//이미지 구멍 메꾸기
+void cvFillHoles(Mat &input)
+{
+	cv::Mat image = input;
+
+	cv::Mat image_thresh;
+	cv::threshold(image, image_thresh, 125, 255, cv::THRESH_BINARY);
+
+	// Loop through the border pixels and if they're black, floodFill from there
+	cv::Mat mask;
+	image_thresh.copyTo(mask);
+	for (int i = 0; i < mask.cols; i++) {
+		if (mask.at<char>(0, i) == 0) {
+			cv::floodFill(mask, cv::Point(i, 0), 255, 0, 10, 10);
+		}
+		if (mask.at<char>(mask.rows - 1, i) == 0) {
+			cv::floodFill(mask, cv::Point(i, mask.rows - 1), 255, 0, 10, 10);
+		}
+	}
+	for (int i = 0; i < mask.rows; i++) {
+		if (mask.at<char>(i, 0) == 0) {
+			cv::floodFill(mask, cv::Point(0, i), 255, 0, 10, 10);
+		}
+		if (mask.at<char>(i, mask.cols - 1) == 0) {
+			cv::floodFill(mask, cv::Point(mask.cols - 1, i), 255, 0, 10, 10);
+		}
+	}
+
+
+	// Compare mask with original.
+	cv::Mat newImage;
+	image.copyTo(newImage);
+	for (int row = 0; row < mask.rows; ++row) {
+		for (int col = 0; col < mask.cols; ++col) {
+			if (mask.at<char>(row, col) == 0) {
+				newImage.at<char>(row, col) = 255;
+			}
+		}
+	}
+	cv::imshow("filled image", mask);
+	input = newImage;
+}
