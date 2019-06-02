@@ -25,7 +25,6 @@ int main(int, char**)
 
 	//손바닥 그리기
 	centerPoint = getHandCenter1(eroded, radius);
-
 	circle(frame, centerPoint, 2, Scalar(0, 255, 0), -1);
 	circle(frame, centerPoint, (int)(radius + 0.5), Scalar(255, 0, 0), 2);
 
@@ -37,13 +36,16 @@ int main(int, char**)
 	cvFillHoles(eroded);
 	DrawConvex(eroded);
 
+	Mat check(mask.size(), CV_8U, Scalar(0));
+	getRealcenterPoint(check);
+
 	//이미지 띄우기
 
-	imshow("mask", mask);
+	imshow("check", check);
+	//imshow("mask", mask);
 	imshow("frame", frame);
 	imshow("eroded", eroded);
 
-	//getRealcenterPoint();
 	//imshow("clmg", clmg);
 
 	waitKey(0);
@@ -110,9 +112,14 @@ void DrawConvex(const Mat& mask)
 	_hullsI = hullsI;
 	_defects = defects;
 
+	LongestContour = 0;
 	//컨벡스 쓰기
 	for (int i = 0; i < Contours.size(); i++)
 	{
+		//제일 긴 컨투어 라인 찾기 
+		if (Contours[LongestContour].size() < Contours[i].size())
+			LongestContour = i;
+
 		convexHull(Contours[i], hull[i], false);
 		convexHull(Contours[i], hullsI[i], false);
 		if (hullsI[i].size() > 3) // You need more than 3 indices          
@@ -120,13 +127,13 @@ void DrawConvex(const Mat& mask)
 			convexityDefects(Contours[i], hullsI[i], defects[i]);
 		}
 	}
+	cout << "골라진 컨투어 인덱스 : " << LongestContour << endl;
+	_selectContours = Contours[LongestContour];
+	_selectdefects = defects[LongestContour];
 
 	Mat drawing = Mat::zeros(mask.size(), CV_8UC3);
 
 	/// Draw convexityDefects
-
-	int count = 0;
-	Point temparr[10]; //어차피 손가락사이점임(잘 된다면ㅎ;)
 
 	for (int i = 0; i < Contours.size(); ++i)
 	{
@@ -152,32 +159,72 @@ void DrawConvex(const Mat& mask)
 				circle(drawing, ptFar, 4, Scalar(0, 255, 255), 2);
 				circle(drawing, ptStart, 4, Scalar(0, 0, 255), 2);
 				circle(drawing, ptEnd, 4, Scalar(0, 0, 255), 2);
-				temparr[count] = ptFar;
-				count++;
+
 			}
 		}
 	}
-	vector<Point> defectPoints(count);
-	for (int k = 0; k < count; k++)
-	{
-		defectPoints[k] = temparr[k];
-	}
-	_defectPoints = defectPoints;
 
 	imshow("Hull demo", drawing);
 }
 
-void getRealcenterPoint()
+void getRealcenterPoint(Mat& input)
 {
-	// 손바닥 다각형 그리기
-	Mat check(mask.size(), CV_8U, Scalar(0));
-	for (int i = 0; i < _defectPoints.size(); i++)
+	Point FarCenter;
+	int sumFarcenterX = 0, sumFarCenterY = 0;
+	int count = 0;
+	Point selectFars[10];
+	Point selectSEs[50];
+
+	// 손바닥 defect 점 찍기
+	for (int i = 0; i < _selectdefects.size(); i++)
 	{
-		circle(check, _defectPoints[i], 4, Scalar(255), 2);
+		const Vec4i& v = _selectdefects[i];
+		float depth = v[3];
+		cout << depth << endl;
+		if (depth > 1500) //  filter defects by depth, e.g more than 10
+		{
+			int startidx = v[0]; Point ptStart(_selectContours[startidx]);
+			int endidx = v[1]; Point ptEnd(_selectContours[endidx]);
+			int faridx = v[2]; Point ptFar(_selectContours[faridx]);
+
+			selectFars[count] = ptFar;
+			selectSEs[2 * count] = ptStart; 
+			selectSEs[2 * count + 1] = ptEnd;
+
+			sumFarcenterX += ptFar.x;
+			sumFarCenterY += ptFar.y;
+			count ++;
+		}
+	}
+	FarCenter.x = sumFarcenterX / count;
+	FarCenter.y = sumFarCenterY / count;
+	
+	vector<Point> Fars(count);
+	vector<Point> SEPoints(count);
+
+	double maxdist = 0;
+	int distance = 0;
+	int maxdistIndex = 0;
+
+	for (int i = 0; i < count; i++)
+	{
+		Fars[i] = selectFars[i];
+		SEPoints[i] = selectSEs[i];
+	
+		//하는김에 평균과 가장 먼 거리의 점 구하기
+		distance = sqrt(pow(Fars[i].x - FarCenter.x, 2) + pow(Fars[i].y - FarCenter.y, 2));
+		if (distance > maxdist)
+		{
+			maxdistIndex = i;
+			maxdist = distance;
+		}
 	}
 
-	//imshow("check", check);
+	_Fars = Fars;
+	_SEPoints = SEPoints;
+	circle(input, FarCenter, maxdist *0.8, Scalar(255), -1);
 }
+
 
 //이미지 구멍 메꾸기
 void cvFillHoles(Mat &input)
@@ -218,6 +265,5 @@ void cvFillHoles(Mat &input)
 			}
 		}
 	}
-	cv::imshow("filled image", mask);
 	input = newImage;
 }

@@ -6,7 +6,7 @@
 #include <opencv2/highgui.hpp>
 #include <iostream>
 #include <stdio.h>
-
+#include <cmath>
 using namespace cv;
 using namespace std;
 
@@ -25,13 +25,14 @@ int maxCb = 139;
 Point centerPoint; //손바닥 중심 위치 
 double radius;
 
-Mat frame = imread("./hand-imgs/nonthumb.jpg");
+Mat frame = imread("./hand-imgs/hand-1-1.jpg");
 Mat eroded;
 Mat closed;
 
 RNG rng(12345);
 
 vector <vector<Point>> Contours;
+
 
 /*
 	vector<vector<Point>>hull(Contours.size());
@@ -43,7 +44,15 @@ vector <vector<Point>> Contours;
 vector<vector<Point>>_hull;
 vector<vector<int> > _hullsI;
 vector<vector<Vec4i>> _defects;
-vector<Point> _defectPoints;
+//제일 긴 컨투어 인덱스 
+int LongestContour;
+
+//골라진 컨투어/defect
+vector<Point> _selectContours;
+vector<Vec4i> _selectdefects;
+
+vector<Point> _Fars;
+vector<Point> _SEPoints;
 
 ////
 
@@ -51,7 +60,7 @@ Point getHandCenter1(const Mat& mask, double& radius);
 //int getFingerNum1(const Mat& mask, Point center, double radius, double scale);
 void DrawConvex(const Mat& mask);
 
-void getRealcenterPoint();
+void getRealcenterPoint(Mat& input);
 
 
 void cvFillHoles(Mat& input);
