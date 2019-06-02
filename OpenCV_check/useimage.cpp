@@ -27,9 +27,9 @@ int main(int, char**)
 	Mat dst;
 	Mat dstshow;
 
-	int minCr = 133;
+	int minCr = 133; //128 
 	int maxCr = 180;
-	int minCb = 77;
+	int minCb = 78; //73
 	int maxCb = 139;
 
 	//손바닥감지
@@ -39,7 +39,7 @@ int main(int, char**)
 	double radius;
 
 
-	Mat frame = imread("hand.jpg");
+	Mat frame = imread("./hand-imgs/hand.jpg");
 
 	cvtColor(frame, YCrCbframe, COLOR_BGR2YCrCb);
 	split(YCrCbframe, planes); // 쪼개서 하고 싶으면 이렇게 
@@ -60,18 +60,20 @@ int main(int, char**)
 
 	//손바닥 그리기
 	centerPoint = getHandCenter1(eroded, radius);
+
 	circle(frame, centerPoint, 2, Scalar(0, 255, 0), -1);
 	circle(frame, centerPoint, (int)(radius + 0.5), Scalar(255, 0, 0), 2);
 
 	//손가락 세기1
-	cout << getFingerNum1(eroded, centerPoint, radius, 1.8);
+	//cout <<  getFingerNum1(eroded, centerPoint, radius, 1.8);
 	
 	DrawConvex(eroded);
 
 	//이미지 띄우기
+
+	imshow("mask", mask);
 	imshow("frame", frame);
 	imshow("eroded", eroded);
-	imshow("dstshow", dstshow);
 
 	//imshow("clmg", clmg);
 
@@ -111,7 +113,6 @@ int getFingerNum1(const Mat & mask, Point center, double radius, double scale)
 
 	//외곽선을 따라 돌며 mask의 값이 0->1인 지점 확인
 	int fingerCount = 0;
-
 	for (int i = 1; i < contours[0].size(); i++) {
 		Point p1 = contours[0][i - 1];
 		Point p2 = contours[0][i];
@@ -132,48 +133,60 @@ void DrawConvex(const Mat& mask)
 	//컨벡스 쓰기
 	RNG rng(12345);
 
-	vector <vector<Point>> contours;
-	findContours(mask, contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
+	vector <vector<Point>> Contours;
+	findContours(mask, Contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
 	//마스크 컨투어링
 
-	vector<vector<Point> >hull(contours.size());
-	vector<vector<int> > hullsI(contours.size());
-	vector<Vec4i> defects(contours.size());
-
-	for (size_t i = 0; i < contours.size(); i++)
+	vector<vector<Point> >hull(Contours.size());
+	vector<vector<int> > hullsI(Contours.size()); // Indices to contour points
+	vector<vector<Vec4i>> defects(Contours.size());
+	for (int i = 0; i < Contours.size(); i++)
 	{
-		cout << i;
-		convexHull(contours[i], hull[i]);
-		convexHull(contours[i], hullsI[i]);
+		convexHull(Contours[i], hull[i], false);
+		convexHull(Contours[i], hullsI[i], false);
+		if (hullsI[i].size() > 3) // You need more than 3 indices          
+		{
+			convexityDefects(Contours[i], hullsI[i], defects[i]);
+		}
 	}
-
-	convexityDefects(contours[0], hullsI[0], defects);
-
 
 	Mat drawing = Mat::zeros(mask.size(), CV_8UC3);
-	for (size_t i = 0; i < contours.size(); i++) // 개중에 가장 큰거만 해야하지 않을까..........? 영상이면..........?
-	{
-		Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
-		drawContours(drawing, contours, (int)i, color);
-		drawContours(drawing, hull, (int)i, color);
-	}
 
-	for (size_t i = 0; i < defects.size(); i++)
+	/// Draw convexityDefects
+	for (int i = 0; i < Contours.size(); ++i)
 	{
-		Vec4i v = defects[i];
-		int depth = v[3];
-		cout << i << " : " << depth << endl;
-		if (depth >= 2500) // 조정할 것
+		for (const Vec4i& v : defects[i])
 		{
-			int startidx = v[0]; Point ptStart(contours[0][startidx]);
-			int endidx = v[1]; Point ptEnd(contours[0][endidx]);
-			int faridx = v[2]; Point ptFar(contours[0][faridx]);
+			Scalar color = Scalar(rng.uniform(0, 256), rng.uniform(0, 256), rng.uniform(0, 256));
+			drawContours(drawing, Contours, (int)i, color);
+			drawContours(drawing, hull, (int)i, color);
 
-			circle(drawing, ptEnd, 4, Scalar(255, 255, 255), 2);
-			circle(drawing, ptStart, 4, Scalar(0, 255, 255), 2);
-			circle(drawing, ptFar, 4, Scalar(255, 255, 0), 2);
+
+			float depth = v[3];
+			cout << depth << endl;
+			if (depth > 2500) //  filter defects by depth, e.g more than 10
+			{
+
+				int startidx = v[0]; Point ptStart(Contours[i][startidx]);
+				int endidx = v[1]; Point ptEnd(Contours[i][endidx]);
+				int faridx = v[2]; Point ptFar(Contours[i][faridx]);
+
+				line(drawing, ptStart, ptEnd, Scalar(255, 255, 0), 1);
+				line(drawing, ptStart, ptFar, Scalar(255, 255, 0), 1);
+				line(drawing, ptEnd, ptFar, Scalar(255, 255, 0), 1);
+
+				circle(drawing, ptFar, 4, Scalar(0, 255, 255), 2);
+				circle(drawing, ptStart, 4, Scalar(0, 0, 255), 2);
+				circle(drawing, ptEnd, 4, Scalar(0, 0, 255), 2);
+
+			}
 		}
 	}
 	imshow("Hull demo", drawing);
 
 }
+
+/*
+ 컨벡스 결점 내부의 값 중에서
+
+*/
