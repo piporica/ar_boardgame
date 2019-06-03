@@ -27,7 +27,7 @@ double radius;
 double maxdist;
 int FmaxdistIndex;
 
-Mat frame = imread("./hand-imgs/hand-2-4.jpg");
+Mat frame = imread("./hand-imgs/hand-2-1.jpg");
 Mat eroded;
 Mat closed;
 
@@ -71,3 +71,4 @@ void getRealcenterPoint();
 void DrawRealConvex(Mat& input);
 
 void cvFillHoles(Mat& input);
+int checkcross(int scale, vector<Point>& crossPoints);

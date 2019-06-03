@@ -236,7 +236,6 @@ void getRealcenterPoint()
 
 void DrawRealConvex(Mat& input)
 {
-
 	//기본 그리기
 	Mat drawing = Mat::zeros(input.size(), CV_8UC3);
 
@@ -246,9 +245,11 @@ void DrawRealConvex(Mat& input)
 	Point hull_center;
 	int x = 0, y = 0;
 	
+	float scale = 1.2; // 교차점이 0개면 늘려야 함
+
 	circle(drawing, FarCenter, 4, Scalar(255, 0, 0));
 	circle(drawing, _Fars[FmaxdistIndex], 8, Scalar(255,0,0));
-	circle(drawing, FarCenter, maxdist * 1.1, Scalar(255,100,0));
+	
 	
 
 	cout << _selecthull.size();
@@ -265,7 +266,60 @@ void DrawRealConvex(Mat& input)
 
 	circle(drawing, hull_center, 4, Scalar(255, 255, 255));
 
+
+	//교차점 구하기 
+	vector<Point> creossPoints(50);
+	int crosscount = checkcross(scale, creossPoints);
+	while (crosscount < 2)
+	{
+		cout << scale;
+		scale += 0.3;
+		crosscount = checkcross(scale, creossPoints);
+	}
+
+	circle(drawing, FarCenter, maxdist * scale, Scalar(255, 100, 0));
 	imshow("test", drawing);
+}
+
+int checkcross(int scale, vector<Point> &crossPoints)
+{
+	Point prevPoint;
+	Point nowPoint;
+
+	int countcross = 0;
+	double prevdist = 0;
+	double nowdist = 0;
+
+	for (int j = 0; j < _selecthull.size(); j++)
+	{
+		//직전은 원 안/ 직후는 원 밖(또는 반대)인 점들 찾기
+		//맨끝점이랑 첫점도 체크
+		if (j == 0)
+		{
+			prevPoint = _selecthull[_selecthull.size() - 1];
+			nowPoint = _selecthull[j];
+		}
+		else
+		{
+			prevPoint = _selecthull[j - 1];
+			nowPoint = _selecthull[j];
+		}
+
+		prevdist = sqrt(pow(prevPoint.x - FarCenter.x, 2) + pow(prevPoint.y - FarCenter.y, 2));
+		nowdist = sqrt(pow(nowPoint.x - FarCenter.x, 2) + pow(nowPoint.y - FarCenter.y, 2));
+
+		if (((maxdist * scale) - prevdist) * ((maxdist * scale) - nowdist) < 0)
+		{
+			crossPoints[countcross*2] = prevPoint;
+			crossPoints[countcross*2+1] = nowPoint;
+			countcross++;
+		}
+		crossPoints.resize(countcross * 2);
+	}
+
+	cout << "교차점 : " << countcross;
+	return countcross;
+
 }
 //이미지 구멍 메꾸기
 void cvFillHoles(Mat &input)
