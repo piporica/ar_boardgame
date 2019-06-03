@@ -24,15 +24,16 @@ int maxCb = 139;
 
 Point centerPoint; //손바닥 중심 위치 
 double radius;
+double maxdist;
+int FmaxdistIndex;
 
-Mat frame = imread("./hand-imgs/hand-1-1.jpg");
+Mat frame = imread("./hand-imgs/hand-2-4.jpg");
 Mat eroded;
 Mat closed;
 
 RNG rng(12345);
 
 vector <vector<Point>> Contours;
-
 
 /*
 	vector<vector<Point>>hull(Contours.size());
@@ -50,9 +51,14 @@ int LongestContour;
 //골라진 컨투어/defect
 vector<Point> _selectContours;
 vector<Vec4i> _selectdefects;
+vector<Point>_selecthull;
 
 vector<Point> _Fars;
-vector<Point> _SEPoints;
+
+Point FarCenter;
+Point SECenter;
+Point SECenter_adv;
+
 
 ////
 
@@ -60,7 +66,8 @@ Point getHandCenter1(const Mat& mask, double& radius);
 //int getFingerNum1(const Mat& mask, Point center, double radius, double scale);
 void DrawConvex(const Mat& mask);
 
-void getRealcenterPoint(Mat& input);
+void getRealcenterPoint();
 
+void DrawRealConvex(Mat& input);
 
 void cvFillHoles(Mat& input);

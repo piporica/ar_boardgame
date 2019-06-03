@@ -19,6 +19,16 @@ int main(int, char**)
 	morphologyEx(mask, closed, MORPH_CLOSE, Mat(5, 5, CV_8U, Scalar(1)));
 	erode(closed, eroded, Mat(3, 3, CV_8U, Scalar(1)), Point(-1, -1), 2); //침식
 
+	//구멍 채우기
+	cvFillHoles(eroded);
+	
+	//컨벡스 그리기
+	DrawConvex(eroded);
+
+	//마스크 구하기
+	Mat check(mask.size(), CV_8U, Scalar(0));
+	getRealcenterPoint(); 
+	
 	//거리변환 보여주기
 	distanceTransform(eroded, dst, DIST_L2, DIST_MASK_PRECISE, 5);
 	normalize(dst, dstshow, 0, 255, NORM_MINMAX, CV_8UC1);
@@ -31,20 +41,14 @@ int main(int, char**)
 	//손가락 세기1 - 1차실패...
 	//cout <<  getFingerNum1(eroded, centerPoint, radius, 1.8);
 	
-	//컨벡스 그리기
 
-	cvFillHoles(eroded);
-	DrawConvex(eroded);
-
-	Mat check(mask.size(), CV_8U, Scalar(0));
-	getRealcenterPoint(check);
-
+	DrawRealConvex(eroded);
 	//이미지 띄우기
 
-	imshow("check", check);
+	//imshow("check", check); 
 	//imshow("mask", mask);
-	imshow("frame", frame);
-	imshow("eroded", eroded);
+	//imshow("frame", frame);
+	//imshow("eroded", eroded);
 
 	//imshow("clmg", clmg);
 
@@ -107,10 +111,7 @@ void DrawConvex(const Mat& mask)
 	vector<vector<int> > hullsI(Contours.size()); // Indices to contour points
 	vector<vector<Vec4i>> defects(Contours.size());
 
-	//전역변수화
-	_hull = hull;
-	_hullsI = hullsI;
-	_defects = defects;
+
 
 	LongestContour = 0;
 	//컨벡스 쓰기
@@ -128,10 +129,18 @@ void DrawConvex(const Mat& mask)
 		}
 	}
 	cout << "골라진 컨투어 인덱스 : " << LongestContour << endl;
-	_selectContours = Contours[LongestContour];
-	_selectdefects = defects[LongestContour];
+
 
 	Mat drawing = Mat::zeros(mask.size(), CV_8UC3);
+
+	//전역변수화
+	_hull = hull;
+	_hullsI = hullsI;
+	_defects = defects;
+	
+	_selectContours = Contours[LongestContour];
+	_selectdefects = defects[LongestContour];
+	_selecthull = hull[LongestContour];
 
 	/// Draw convexityDefects
 
@@ -163,21 +172,21 @@ void DrawConvex(const Mat& mask)
 			}
 		}
 	}
-
-	imshow("Hull demo", drawing);
+	//imshow("Hull demo", drawing);
 }
 
-void getRealcenterPoint(Mat& input)
+void getRealcenterPoint()
 {
-	Point FarCenter;
-	int sumFarcenterX = 0, sumFarCenterY = 0;
+	int sumFarCenterX = 0, sumFarCenterY = 0;
+	int sumSECenterX = 0, sumSECenterY = 0;
+
 	int count = 0;
 	Point selectFars[10];
-	Point selectSEs[50];
 
-	// 손바닥 defect 점 찍기
+
 	for (int i = 0; i < _selectdefects.size(); i++)
 	{
+
 		const Vec4i& v = _selectdefects[i];
 		float depth = v[3];
 		cout << depth << endl;
@@ -188,44 +197,76 @@ void getRealcenterPoint(Mat& input)
 			int faridx = v[2]; Point ptFar(_selectContours[faridx]);
 
 			selectFars[count] = ptFar;
-			selectSEs[2 * count] = ptStart; 
-			selectSEs[2 * count + 1] = ptEnd;
-
-			sumFarcenterX += ptFar.x;
+			sumFarCenterX += ptFar.x;
 			sumFarCenterY += ptFar.y;
+
+			sumSECenterX += (ptStart.x + ptEnd.x);
+			sumSECenterY += (ptStart.y + ptEnd.y);
+
 			count ++;
 		}
 	}
-	FarCenter.x = sumFarcenterX / count;
+	FarCenter.x = sumFarCenterX / count;
 	FarCenter.y = sumFarCenterY / count;
-	
-	vector<Point> Fars(count);
-	vector<Point> SEPoints(count);
 
-	double maxdist = 0;
-	int distance = 0;
-	int maxdistIndex = 0;
+	SECenter.x = sumSECenterX / (count * 2);
+	SECenter.y = sumSECenterY / (count * 2);
+
+	vector<Point> Fars(count);
+
+	maxdist = 0;
+	int Fdistance = 0;
+	int FmaxdistIndex = 0;
 
 	for (int i = 0; i < count; i++)
 	{
 		Fars[i] = selectFars[i];
-		SEPoints[i] = selectSEs[i];
 	
 		//하는김에 평균과 가장 먼 거리의 점 구하기
-		distance = sqrt(pow(Fars[i].x - FarCenter.x, 2) + pow(Fars[i].y - FarCenter.y, 2));
-		if (distance > maxdist)
+		Fdistance = sqrt(pow(Fars[i].x - FarCenter.x, 2) + pow(Fars[i].y - FarCenter.y, 2));
+		if (Fdistance > maxdist)
 		{
-			maxdistIndex = i;
-			maxdist = distance;
+			FmaxdistIndex = i;
+			maxdist = Fdistance;
 		}
 	}
-
 	_Fars = Fars;
-	_SEPoints = SEPoints;
-	circle(input, FarCenter, maxdist *0.8, Scalar(255), -1);
+
 }
 
+void DrawRealConvex(Mat& input)
+{
 
+	//기본 그리기
+	Mat drawing = Mat::zeros(input.size(), CV_8UC3);
+
+	//drawContours(drawing, Contours, (int)LongestContour, Scalar(100,100,100));
+	drawContours(drawing, _hull, (int)LongestContour, Scalar(255, 255, 255));
+
+	Point hull_center;
+	int x = 0, y = 0;
+	
+	circle(drawing, FarCenter, 4, Scalar(255, 0, 0));
+	circle(drawing, _Fars[FmaxdistIndex], 8, Scalar(255,0,0));
+	circle(drawing, FarCenter, maxdist * 1.1, Scalar(255,100,0));
+	
+
+	cout << _selecthull.size();
+
+	for (int i = 0; i < _selecthull.size(); i++)
+	{
+		circle(drawing, _selecthull[i], 4, Scalar(255, 0, 0));
+		x += _selecthull[i].x;
+		y += _selecthull[i].y;
+	}
+
+	hull_center.x = x / _selecthull.size();
+	hull_center.y = y / _selecthull.size();
+
+	circle(drawing, hull_center, 4, Scalar(255, 255, 255));
+
+	imshow("test", drawing);
+}
 //이미지 구멍 메꾸기
 void cvFillHoles(Mat &input)
 {
@@ -265,5 +306,6 @@ void cvFillHoles(Mat &input)
 			}
 		}
 	}
+	//cv::imshow("filled image", mask);
 	input = newImage;
 }
