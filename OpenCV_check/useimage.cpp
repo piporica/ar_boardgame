@@ -21,14 +21,14 @@ int main(int, char**)
 
 	//구멍 채우기
 	cvFillHoles(eroded);
-	
+
 	//컨벡스 그리기
 	DrawConvex(eroded);
 
 	//마스크 구하기
 	Mat check(mask.size(), CV_8U, Scalar(0));
-	getRealcenterPoint(); 
-	
+	getRealcenterPoint();
+
 	//거리변환 보여주기
 	distanceTransform(eroded, dst, DIST_L2, DIST_MASK_PRECISE, 5);
 	normalize(dst, dstshow, 0, 255, NORM_MINMAX, CV_8UC1);
@@ -40,7 +40,7 @@ int main(int, char**)
 
 	//손가락 세기1 - 1차실패...
 	//cout <<  getFingerNum1(eroded, centerPoint, radius, 1.8);
-	
+
 
 	DrawRealConvex(eroded);
 	//이미지 띄우기
@@ -53,7 +53,7 @@ int main(int, char**)
 	//imshow("clmg", clmg);
 
 	waitKey(0);
-		
+
 }
 
 //손바닥 중심 구하기1 - 손목과 구분 x
@@ -104,7 +104,7 @@ int getFingerNum1(const Mat & mask, Point center, double radius, double scale)
 
 
 //컨벡스를 이용한 손모양 검출 
-void DrawConvex(const Mat& mask)
+void DrawConvex(const Mat & mask)
 {
 	findContours(mask, Contours, RETR_TREE, CHAIN_APPROX_SIMPLE);
 	vector<vector<Point>>hull(Contours.size());
@@ -137,7 +137,7 @@ void DrawConvex(const Mat& mask)
 	_hull = hull;
 	_hullsI = hullsI;
 	_defects = defects;
-	
+
 	_selectContours = Contours[LongestContour];
 	_selectdefects = defects[LongestContour];
 	_selecthull = hull[LongestContour];
@@ -203,7 +203,7 @@ void getRealcenterPoint()
 			sumSECenterX += (ptStart.x + ptEnd.x);
 			sumSECenterY += (ptStart.y + ptEnd.y);
 
-			count ++;
+			count++;
 		}
 	}
 	FarCenter.x = sumFarCenterX / count;
@@ -221,7 +221,7 @@ void getRealcenterPoint()
 	for (int i = 0; i < count; i++)
 	{
 		Fars[i] = selectFars[i];
-	
+
 		//하는김에 평균과 가장 먼 거리의 점 구하기
 		Fdistance = sqrt(pow(Fars[i].x - FarCenter.x, 2) + pow(Fars[i].y - FarCenter.y, 2));
 		if (Fdistance > maxdist)
@@ -234,7 +234,7 @@ void getRealcenterPoint()
 
 }
 
-void DrawRealConvex(Mat& input)
+void DrawRealConvex(Mat & input)
 {
 	//기본 그리기
 	Mat drawing = Mat::zeros(input.size(), CV_8UC3);
@@ -244,13 +244,11 @@ void DrawRealConvex(Mat& input)
 
 	Point hull_center;
 	int x = 0, y = 0;
-	
+
 	float scale = 1.2; // 교차점이 0개면 늘려야 함
 
 	circle(drawing, FarCenter, 4, Scalar(255, 0, 0));
-	circle(drawing, _Fars[FmaxdistIndex], 8, Scalar(255,0,0));
-	
-	
+	circle(drawing, _Fars[FmaxdistIndex], 8, Scalar(255, 0, 0));
 
 	cout << _selecthull.size();
 
@@ -268,21 +266,29 @@ void DrawRealConvex(Mat& input)
 
 
 	//교차점 구하기 
-	vector<Point> creossPoints(50);
-	int crosscount = checkcross(scale, creossPoints);
+	vector<Point> crossPoints(50);
+
+	int crosscount = checkcross(scale, crossPoints);
+
 	while (crosscount < 2)
 	{
 		cout << scale;
 		scale += 0.3;
-		crosscount = checkcross(scale, creossPoints);
+		crosscount = checkcross(scale, crossPoints);
 	}
 
-	circle(drawing, FarCenter, maxdist * scale, Scalar(255, 100, 0));
+	for (int i = 0; i < crossPoints.size(); i++)
+	{
+		circle(drawing, crossPoints[i], 4, Scalar(0, 255, 0),-1);
+	}
+
+	circle(drawing, FarCenter, maxdist * scale, Scalar(255, 255, 0));
 	imshow("test", drawing);
 }
 
-int checkcross(int scale, vector<Point> &crossPoints)
+int checkcross(float scale, vector<Point> & crossPoints)
 {
+	/*
 	Point prevPoint;
 	Point nowPoint;
 
@@ -310,19 +316,119 @@ int checkcross(int scale, vector<Point> &crossPoints)
 
 		if (((maxdist * scale) - prevdist) * ((maxdist * scale) - nowdist) < 0)
 		{
-			crossPoints[countcross*2] = prevPoint;
-			crossPoints[countcross*2+1] = nowPoint;
+			crossPoints[countcross * 2] = prevPoint;
+			crossPoints[countcross * 2 + 1] = nowPoint;
 			countcross++;
 		}
-		crossPoints.resize(countcross * 2);
+	}
+	crossPoints.resize(countcross * 2);
+	return countcross;
+	*/
+	// 저렇게 하면 통과하는 거 잡기 불가능
+
+	Point prevPoint;
+	Point nowPoint;
+
+	int countcross = 0;
+
+	for (int j = 0; j < _selecthull.size(); j++)
+	{
+		if (j == 0)
+		{
+			prevPoint = _selecthull[_selecthull.size() - 1];
+			nowPoint = _selecthull[j];
+		}
+		else
+		{
+			prevPoint = _selecthull[j - 1];
+			nowPoint = _selecthull[j];
+		}
+
+		Point rst[2];
+		int noa;
+		bool chk = findcrossPoint(prevPoint, nowPoint, FarCenter, maxdist * scale, noa, rst);
+		if (chk)
+		{
+			cout <<"통과 : "<< noa << endl;
+
+			if (noa == 1)
+			{
+				crossPoints[countcross] = rst[0];
+				countcross++;
+			}
+			if (noa == 2)
+			{
+				crossPoints[countcross] = rst[0];
+				crossPoints[countcross+1] = rst[1];
+				countcross = countcross + 2;
+			}
+		}
+	}
+	crossPoints.resize(countcross);
+	return countcross;
+}
+
+
+//원과의 교차점 구하기
+bool findcrossPoint(Point start, Point end, Point center, float radius, int &numOfAns, Point rst[2])
+{
+	//a와 b로 이루어진 선분과 center이 중심이고 radius 가 반지름인 원과의 교차점 구하기
+	numOfAns = 0;
+
+	float degree = float((end.y - start.y)) / float((end.x - start.x));			//기울기
+	cout << "degree" << degree << endl;
+	
+	float constv = start.y - degree * start.x; // 상수
+
+	float a = 1 + degree * degree;
+	float b = -2 * (center.x + degree *(center.y - constv));
+	float c = center.x * center.x + (center.y - constv) * (center.y - constv) - radius*radius ;
+
+	if ((b * b - 4 * a * c) < 0) // 허근
+	{
+		return false;
 	}
 
-	cout << "교차점 : " << countcross;
-	return countcross;
+	float ans1 = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
+	float ans2 = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
 
+	//접선일 때
+	if ((b * b - 4 * a * c) == 0) // 중근
+	{
+		numOfAns = 1;
+		rst[0].x = ans1;
+		rst[0].y = degree * ans1 + constv;
+		return true;
+	}
+
+	//근이 두 개일 때
+	//근이 진짜인지 판별
+	//교점이어야하므로 x좌표가 두 점 사이에 있어야함
+
+	if (((start.x - ans1) * (end.x - ans1)) < 0)
+	{
+		rst[0].x = ans1;
+		rst[0].y = degree * ans1 + constv;
+		numOfAns++;
+	}
+	if (((start.x - ans2) * (end.x - ans2)) < 0)
+	{
+		rst[numOfAns].x = ans2;
+		rst[numOfAns].y = degree * ans2 + constv;
+		numOfAns++;
+	}
+	if(numOfAns == 0)
+	{
+		return false; // 원 안 or 원 밖의 점
+	}
+	
+	return true;
 }
+
+
+
 //이미지 구멍 메꾸기
-void cvFillHoles(Mat &input)
+void cvFillHoles(Mat & input)
 {
 	cv::Mat image = input;
 
