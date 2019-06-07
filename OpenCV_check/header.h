@@ -1,5 +1,6 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
 #include <opencv2/opencv.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/videoio.hpp>
@@ -7,6 +8,8 @@
 #include <iostream>
 #include <stdio.h>
 #include <cmath>
+
+
 using namespace cv;
 using namespace std;
 
@@ -27,7 +30,7 @@ double radius;
 double maxdist;
 int FmaxdistIndex;
 
-Mat frame = imread("./hand-imgs/hand-2-2.jpg");
+Mat frame = imread("./hand-imgs/hand-1-1.jpg");
 Mat eroded;
 Mat closed;
 
@@ -54,11 +57,11 @@ vector<Vec4i> _selectdefects;
 vector<Point>_selecthull;
 
 vector<Point> _Fars;
-
+Point hull_center;
 Point FarCenter;
 Point SECenter;
 Point SECenter_adv;
-
+int whatline[50]; //어느 점 전인지 적어두기... 아 코드 졸렬해진다...
 
 ////
 
@@ -69,6 +72,10 @@ void DrawConvex(const Mat& mask);
 void getRealcenterPoint();
 
 void DrawRealConvex(Mat& input);
+
+void cutcunvexhull(vector<Point>crosspoint, vector<Point>& Points);
+
+double findangle(Point a, Point b, Point center);
 
 void cvFillHoles(Mat& input);
 int checkcross(float scale, vector<Point>& crossPoints);

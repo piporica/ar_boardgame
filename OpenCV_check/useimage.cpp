@@ -242,7 +242,6 @@ void DrawRealConvex(Mat & input)
 	//drawContours(drawing, Contours, (int)LongestContour, Scalar(100,100,100));
 	drawContours(drawing, _hull, (int)LongestContour, Scalar(255, 255, 255));
 
-	Point hull_center;
 	int x = 0, y = 0;
 
 	float scale = 1.2; // 교차점이 0개면 늘려야 함
@@ -254,7 +253,7 @@ void DrawRealConvex(Mat & input)
 
 	for (int i = 0; i < _selecthull.size(); i++)
 	{
-		circle(drawing, _selecthull[i], 4, Scalar(255, 0, 0));
+		circle(drawing, _selecthull[i], 4, Scalar(255, 0, 0),-1);
 		x += _selecthull[i].x;
 		y += _selecthull[i].y;
 	}
@@ -268,18 +267,51 @@ void DrawRealConvex(Mat & input)
 	//교차점 구하기 
 	vector<Point> crossPoints(50);
 
+
+	int rimit = 10;//무한방지용 상수 - 손목 없을 수도 있으니까
+
 	int crosscount = checkcross(scale, crossPoints);
+	int over120 = 0; //120도 넘는게 2개는 있어야 통과
 
 	while (crosscount < 2)
 	{
 		cout << scale;
 		scale += 0.3;
 		crosscount = checkcross(scale, crossPoints);
+		rimit--;
+		if (rimit == 0) break;
 	}
 
+	rimit = 10; //한계상수 초기화
+
+	//먼저 체크
 	for (int i = 0; i < crossPoints.size(); i++)
 	{
-		circle(drawing, crossPoints[i], 4, Scalar(0, 255, 0),-1);
+		cout << i << endl;
+		cout << "angle : " << findangle(crossPoints[i], hull_center, FarCenter) << endl;
+		if (findangle(crossPoints[i], hull_center, FarCenter) > 120) over120++;
+	}
+	//만족할때까지 scale 늘리기
+	while (over120 < 2)
+	{
+		scale += 0.3;
+		crosscount = checkcross(scale, crossPoints);
+		over120 = 0;
+		for (int i = 0; i < crossPoints.size(); i++)
+		{
+			cout << i << endl;
+			cout << "angle : " << findangle(crossPoints[i], hull_center, FarCenter) << endl;
+			if (findangle(crossPoints[i], hull_center, FarCenter) > 120) over120++;
+		}
+		rimit--;
+		if (rimit == 0) break;
+	}
+	vector<Point> cut(_selecthull.size());
+	cutcunvexhull(crossPoints, cut);
+
+	for (int i = 0; i < cut.size(); i++)
+	{
+		circle(drawing, cut[i], 4, Scalar(0, 255, 255), -1);
 	}
 
 	circle(drawing, FarCenter, maxdist * scale, Scalar(255, 255, 0));
@@ -349,17 +381,20 @@ int checkcross(float scale, vector<Point> & crossPoints)
 		bool chk = findcrossPoint(prevPoint, nowPoint, FarCenter, maxdist * scale, noa, rst);
 		if (chk)
 		{
-			cout <<"통과 : "<< noa << endl;
-
 			if (noa == 1)
 			{
+				whatline[countcross] = j; //어느 점 전인지 적어두기...
 				crossPoints[countcross] = rst[0];
 				countcross++;
 			}
 			if (noa == 2)
 			{
 				crossPoints[countcross] = rst[0];
+				whatline[countcross] = j; //어느 점 전인지 적어두기...
+
 				crossPoints[countcross+1] = rst[1];
+				whatline[countcross+1] = j; //어느 점 전인지 적어두기...
+				
 				countcross = countcross + 2;
 			}
 		}
@@ -376,8 +411,7 @@ bool findcrossPoint(Point start, Point end, Point center, float radius, int &num
 	numOfAns = 0;
 
 	float degree = float((end.y - start.y)) / float((end.x - start.x));			//기울기
-	cout << "degree" << degree << endl;
-	
+
 	float constv = start.y - degree * start.x; // 상수
 
 	float a = 1 + degree * degree;
@@ -425,7 +459,104 @@ bool findcrossPoint(Point start, Point end, Point center, float radius, int &num
 	return true;
 }
 
+double findangle(Point a, Point b, Point center)
+{
+	Point newA(a.x - center.x, a.y - center.y);
+	Point newB(b.x - center.x, b.y - center.y);
 
+	double angleA = atan(newA.y / double(newA.x));
+	double angleB = atan(newB.y / double(newB.x));
+
+	angleA = angleA * 180 / M_PI;
+	angleB = angleB * 180 / M_PI;
+
+	//4분면 나누기
+	if (newA.x < 0) angleA = 180 + angleA;
+	else if (newA.y < 0) angleA = 360 + angleA;
+	
+	if (newB.x < 0) angleB = 180 + angleB;
+	else if (newB.y < 0) angleB = 360 + angleB;
+
+	//차 구하기
+	double rst = abs(angleA - angleB);
+	if (rst > 180) rst = 360 - rst;
+
+	return rst;
+}
+
+void cutcunvexhull(vector<Point>crossPoints, vector<Point> & rstList)
+{
+	//각도(120 이상)제일 큰 거 두개 고르기 (없음말기)
+	//if 140 이상인게 세 개라면 그중 양 끝거로 <- 나중에
+	//직선방정식 세우기
+	//점 체킹 -> 뺄 거 빼기
+	//자른 점 집어넣기
+	int over120 = 0;
+	int maxAngleindex[2] = {0,0}; // 제일 큰 거 두개 
+	double maxAnglevalue[2] = {0,0};
+	
+	double angle;
+	for (int i = 0; i < crossPoints.size(); i++)
+	{
+		angle = findangle(crossPoints[i], hull_center, FarCenter);
+		if (angle > 120)
+		{
+			if (angle > maxAnglevalue[0])
+			{
+				maxAnglevalue[1] = maxAnglevalue[0];
+				maxAnglevalue[0] = angle;
+				maxAngleindex[1] = maxAngleindex[0];
+				maxAngleindex[0] = i;
+			}
+			else if (angle > maxAnglevalue[1])
+			{
+				maxAngleindex[1] = i;
+				maxAnglevalue[1] = angle;
+			}
+			over120++;
+		}
+	}
+	if (over120 < 2) return;
+
+	//직선방정식 세우기 
+	Point max1 = crossPoints[maxAngleindex[0]];
+	Point max2 = crossPoints[maxAngleindex[1]];
+
+	double degree = (max2.y - max1.y) / double((max2.x - max1.x));
+	double constv = max1.y - degree * max1.x;
+
+	//자르는 점의 행렬상 위치 파악 -만약 여기서 같은 선 위에 있다면 그냥 스킵해버린다
+	int nextindex1 = whatline[maxAngleindex[0]];
+	int nextindex2 = whatline[maxAngleindex[1]];
+	if (nextindex1 == nextindex2) return;
+
+	//센터의 위치 파악
+	double up = hull_center.y - (hull_center.x * degree + constv); // 양수면 위에 있음
+	double isup;
+	int listcount = 0;
+	for (int i = 0; i < _selecthull.size(); i++)
+	{
+		//새 점 넣기
+		if (i == nextindex1)
+		{
+			rstList[listcount] = max1;
+			listcount++;
+		}
+		else if (i == nextindex2)
+		{
+			rstList[listcount] = max2;
+			listcount++;
+		}
+
+		//기존 점 고르기
+		isup = _selecthull[i].y - (_selecthull[i].x * degree + constv);
+		if (up * isup > 0) // 같은 방향
+		{
+			rstList[listcount] = _selecthull[i];
+			listcount++;
+		}
+	}
+}
 
 //이미지 구멍 메꾸기
 void cvFillHoles(Mat & input)

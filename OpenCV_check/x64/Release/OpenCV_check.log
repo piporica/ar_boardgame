@@ -10,53 +10,54 @@ D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(191): warning C4244:
               _Tp=int
           ]
 D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(226): warning C4244: '=': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(248): warning C4305: '초기화 중': 'double'에서 'float'(으)로 잘립니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(247): warning C4305: '초기화 중': 'double'에서 'float'(으)로 잘립니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(261): warning C4267: '=': 'size_t'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+          with
+          [
+              _Tp=int
+          ]
 D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(262): warning C4267: '=': 'size_t'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(263): warning C4267: '=': 'size_t'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(279): warning C4305: '+=': 'double'에서 'float'(으)로 잘립니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(297): warning C4305: '+=': 'double'에서 'float'(으)로 잘립니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(317): warning C4244: '인수': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(381): warning C4244: '인수': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(433): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(276): warning C4305: '+=': 'double'에서 'float'(으)로 잘립니다.
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(285): warning C4244: '인수': 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(349): warning C4244: '인수': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(399): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(434): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(400): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(444): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(410): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(445): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(411): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(450): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(416): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(451): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
           with
           [
               _Tp=int
           ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(417): warning C4244: '=': 'float'에서 '_Tp'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-          with
-          [
-              _Tp=int
-          ]
-D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(465): warning C4309: '=': 상수 값이 잘립니다.
+D:\mine\opencv\repos\OpenCV_check\OpenCV_check\useimage.cpp(596): warning C4309: '=': 상수 값이 잘립니다.
   코드를 생성하고 있습니다.
-  55 of 791 functions ( 7.0%) were compiled, the rest were copied from previous compilation.
+  56 of 795 functions ( 7.0%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
     1 functions had inline decision re-evaluated but remain unchanged
   코드를 생성했습니다.
